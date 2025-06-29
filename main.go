@@ -172,10 +172,12 @@ func main() {
 
 	// 2. TOKEN 管理
 	tokenPath := "/data/conflux/token"
+	_ = os.MkdirAll(filepath.Dir(tokenPath), 0755) // 确保 token 目录存在
 	_ = getToken(tokenPath)
 
 	// 3. 节点配置文件检查与自动更新
 	nodeConf := "/data/conflux/node.conf"
+	_ = os.MkdirAll(filepath.Dir(nodeConf), 0755) // 确保 node.conf 目录存在
 	checkAndUpdateNodeConf(nodeConf)
 
 	// 4. 定时任务：每隔6小时检查 node.conf 是否超时未更新

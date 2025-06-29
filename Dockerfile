@@ -23,8 +23,5 @@ WORKDIR /data/conflux
 # 拷贝二进制文件
 COPY --from=builder /app/conflux /conflux
 
-# 创建日志和数据目录
-RUN mkdir -p /data/conflux/log
-
 # 启动应用
 ENTRYPOINT ["/conflux"] 
