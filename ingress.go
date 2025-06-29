@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -16,7 +17,10 @@ import (
 func ingress(ctx *UpdateContext) {
 	newNodes := []Node{}
 	uniqueSet := make(map[string]struct{})
-	dnsCache := make(map[string][]string)
+
+	// 收集需要 DNS 查询的域名
+	domainNodes := []Node{}
+	ipNodes := []Node{}
 
 	for _, node := range ctx.Nodes {
 		stat := ctx.AirportStats[node.Source]
@@ -26,25 +30,34 @@ func ingress(ctx *UpdateContext) {
 		}
 		stat.Total++
 
-		// 只查域名，IP节点直接保留
+		// 分离 IP 节点和域名节点
 		if isIP(node.Server) {
-			// IP 节点直接使用，不需要 DNS 查询
-			key := uniqueKey(node)
-			if _, exists := uniqueSet[key]; !exists {
-				uniqueSet[key] = struct{}{}
-				newNodes = append(newNodes, node)
-			} else {
-				stat.Duplicated++
-			}
-			continue
+			ipNodes = append(ipNodes, node)
+		} else {
+			domainNodes = append(domainNodes, node)
 		}
+	}
 
-		// DNS 缓存
-		ips, ok := dnsCache[node.Server]
-		if !ok {
-			ips, _ = resolveA1_1_1_1(node.Server)
-			dnsCache[node.Server] = ips
+	// 并发 DNS 查询，限制并发数为 10
+	dnsResults := concurrentDNSQuery(domainNodes, 10)
+
+	// 处理 IP 节点（直接保留）
+	for _, node := range ipNodes {
+		key := uniqueKey(node)
+		if _, exists := uniqueSet[key]; !exists {
+			uniqueSet[key] = struct{}{}
+			newNodes = append(newNodes, node)
+		} else {
+			ctx.AirportStats[node.Source].Duplicated++
 		}
+	}
+
+	// 处理域名节点（DNS 查询结果）
+	for _, result := range dnsResults {
+		node := result.node
+		ips := result.ips
+		stat := ctx.AirportStats[node.Source]
+
 		if len(ips) == 0 {
 			Warn("INGRESS", "DoH 查询失败: [%s] %s", node.Source, node.OriginName)
 			stat.Failed++
@@ -73,12 +86,63 @@ func ingress(ctx *UpdateContext) {
 			stat.Duplicated++
 		}
 	}
+
 	ctx.Nodes = newNodes
 
 	// 输出每个机场的统计日志，格式: [机场名] 总数=%d 去重=%d 失败=%d
 	for airport, stat := range ctx.AirportStats {
 		Info("INGRESS", "[%s] 总数=%d 去重=%d 失败=%d", airport, stat.Total, stat.Duplicated, stat.Failed)
 	}
+}
+
+// DNS 查询结果结构
+type dnsResult struct {
+	node Node
+	ips  []string
+}
+
+// 并发 DNS 查询，限制并发数
+func concurrentDNSQuery(nodes []Node, concurrency int) []dnsResult {
+	if len(nodes) == 0 {
+		return []dnsResult{}
+	}
+
+	// 创建任务通道
+	taskChan := make(chan Node, len(nodes))
+	resultChan := make(chan dnsResult, len(nodes))
+
+	// 启动工作协程
+	var wg sync.WaitGroup
+	for i := 0; i < concurrency; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for node := range taskChan {
+				ips, _ := resolveA1_1_1_1(node.Server)
+				resultChan <- dnsResult{node: node, ips: ips}
+			}
+		}()
+	}
+
+	// 发送任务
+	for _, node := range nodes {
+		taskChan <- node
+	}
+	close(taskChan)
+
+	// 等待所有工作协程完成
+	go func() {
+		wg.Wait()
+		close(resultChan)
+	}()
+
+	// 收集结果
+	var results []dnsResult
+	for result := range resultChan {
+		results = append(results, result)
+	}
+
+	return results
 }
 
 // 判断是否为IP

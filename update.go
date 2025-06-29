@@ -111,7 +111,7 @@ func fetchAllProxies(airports map[string]string) map[string][]string {
 		wg.Add(1)
 		go func(name, url string) {
 			defer wg.Done()
-			lines := fetchProxies(url)
+			lines := fetchProxies(name, url)
 			mu.Lock()
 			result[name] = lines
 			mu.Unlock()
@@ -122,23 +122,45 @@ func fetchAllProxies(airports map[string]string) map[string][]string {
 }
 
 // 拉取单个机场订阅，返回所有行（失败重试一次，UA 伪装为 Surge）
-func fetchProxies(url string) []string {
+func fetchProxies(airport, url string) []string {
 	client := &http.Client{Timeout: 3 * time.Second}
 	for i := 0; i < 2; i++ {
-		req, _ := http.NewRequest("GET", url, nil)
+		req, err := http.NewRequest("GET", url, nil)
+		if err != nil {
+			Error("UPDATE", "机场 %s 创建请求失败: %v", airport, err)
+			continue
+		}
 		req.Header.Set("User-Agent", "Surge")
 		resp, err := client.Do(req)
-		if err == nil && resp.StatusCode == 200 {
-			defer resp.Body.Close()
-			scanner := bufio.NewScanner(resp.Body)
-			var lines []string
-			for scanner.Scan() {
-				lines = append(lines, scanner.Text())
+		if err != nil {
+			if i == 1 { // 最后一次重试失败
+				Error("UPDATE", "机场 %s 请求失败: %v", airport, err)
 			}
-			return lines
+			time.Sleep(500 * time.Millisecond)
+			continue
 		}
-		time.Sleep(500 * time.Millisecond)
+		if resp.StatusCode != 200 {
+			if i == 1 { // 最后一次重试失败
+				Error("UPDATE", "机场 %s HTTP状态码错误: %d", airport, resp.StatusCode)
+			}
+			resp.Body.Close()
+			time.Sleep(500 * time.Millisecond)
+			continue
+		}
+		defer resp.Body.Close()
+		scanner := bufio.NewScanner(resp.Body)
+		var lines []string
+		for scanner.Scan() {
+			lines = append(lines, scanner.Text())
+		}
+		if len(lines) == 0 {
+			Warn("UPDATE", "机场 %s 返回空内容", airport)
+		} else {
+			Info("UPDATE", "机场 %s 获取 %d 行内容", airport, len(lines))
+		}
+		return lines
 	}
+	Error("UPDATE", "机场 %s 所有重试均失败", airport)
 	return nil
 }
 
