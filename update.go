@@ -84,7 +84,7 @@ func updateNodes() {
 	egress(ctx)
 
 	// 7. 节点重命名，生成最终节点名
-	renameNodes(ctx)
+	// renameNodes(ctx) // 已删除
 
 	// 8. 写入 node.conf
 	writeNodeConf(ctx.Nodes)
@@ -241,14 +241,6 @@ func parseNodeLine(line, airport string) (Node, bool) {
 	}, true
 }
 
-// 节点重命名，生成最终节点名（不覆盖原始名，直接用于输出）
-func renameNodes(ctx *UpdateContext) {
-	// 只清空 _newname 字段
-	for i := range ctx.Nodes {
-		ctx.Nodes[i].Params["_newname"] = ""
-	}
-}
-
 // 格式化节点为订阅输出格式
 // newName: 新节点名（如 AR HK🇭🇰-01）
 func formatNode(n Node, newName string) string {
@@ -269,9 +261,6 @@ func formatNode(n Node, newName string) string {
 
 	// 添加新增的参数到末尾
 	for k, v := range n.Params {
-		if k == "_newname" {
-			continue // 不输出内部字段
-		}
 		if !originalParams[k] {
 			if params != "" {
 				params += ","

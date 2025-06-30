@@ -112,31 +112,27 @@ func getToken(tokenPath string) string {
 	return token
 }
 
-// 节点配置文件检查与自动更新
-func checkAndUpdateNodeConf(nodeConf string) {
-	info, err := os.Stat(nodeConf)
-	if os.IsNotExist(err) {
-		Warn("CONF", "未检测到 node.conf，自动执行 update")
-		updateNodes()
-		return
+// 合并定时/条件触发的 node.conf 检查逻辑
+func manageNodeConf(nodeConf string) {
+	check := func() {
+		info, err := os.Stat(nodeConf)
+		if os.IsNotExist(err) {
+			Warn("CONF", "未检测到 node.conf，自动执行 update")
+			updateNodes()
+			return
+		}
+		if err == nil && time.Since(info.ModTime()) > 24*time.Hour {
+			Warn("CONF", "node.conf 超过 24 小时未更新，自动执行 update")
+			updateNodes()
+		}
 	}
-	if err == nil && time.Since(info.ModTime()) > 24*time.Hour {
-		Warn("CONF", "node.conf 超过 24 小时未更新，自动执行 update")
-		updateNodes()
-	}
-}
-
-// 定时任务：每隔6小时检查 node.conf 是否超时未更新
-func startNodeConfChecker(nodeConf string) {
+	// 启动时检查一次
+	check()
+	// 定时任务：每隔6小时检查 node.conf 是否超时未更新
 	go func() {
 		for {
 			time.Sleep(6 * time.Hour)
-			if info, err := os.Stat(nodeConf); err == nil {
-				if time.Since(info.ModTime()) > 24*time.Hour {
-					Warn("CONF", "node.conf 超过 24 小时未更新，自动执行 update")
-					updateNodes()
-				}
-			}
+			check()
 		}
 	}()
 }
@@ -196,12 +192,9 @@ func main() {
 
 	// 3. 节点配置文件检查与自动更新
 	nodeConf := filepath.Join(baseDir, "node.conf")
-	checkAndUpdateNodeConf(nodeConf)
+	manageNodeConf(nodeConf)
 
-	// 4. 定时任务：每隔6小时检查 node.conf 是否超时未更新
-	startNodeConfChecker(nodeConf)
-
-	// 5. 启动 HTTP 服务
+	// 4. 启动 HTTP 服务
 	Info("HTTP", "启动 HTTP 服务...")
 	startServer()
 }
