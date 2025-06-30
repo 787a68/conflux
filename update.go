@@ -243,28 +243,19 @@ func parseNodeLine(line, airport string) (Node, bool) {
 
 // 节点重命名，生成最终节点名（不覆盖原始名，直接用于输出）
 func renameNodes(ctx *UpdateContext) {
-	// 按机场和 ISO 分组计数
-	counters := make(map[string]map[string]int)
-
-	// 先统计每个机场和 ISO 组合的数量
-	for _, node := range ctx.Nodes {
-		if counters[node.Source] == nil {
-			counters[node.Source] = make(map[string]int)
-		}
-		counters[node.Source][node.ISO]++
-	}
-
-	// 重置计数器用于重命名
-	renameCounters := make(map[string]map[string]int)
-
-	// 重命名节点
+	// 先分组
+	groupMap := make(map[string][]int) // key: Source+ISO, value: 节点在 ctx.Nodes 的下标
 	for i, node := range ctx.Nodes {
-		if renameCounters[node.Source] == nil {
-			renameCounters[node.Source] = make(map[string]int)
+		groupKey := fmt.Sprintf("%s|%s", node.Source, node.ISO)
+		groupMap[groupKey] = append(groupMap[groupKey], i)
+	}
+	// 对每组顺序编号
+	for _, idxs := range groupMap {
+		for j, idx := range idxs {
+			node := &ctx.Nodes[idx]
+			newName := fmt.Sprintf("%s %s%s-%02d", node.Source, node.ISO, node.Emoji, j+1)
+			node.Params["_newname"] = newName
 		}
-		renameCounters[node.Source][node.ISO]++
-		newName := fmt.Sprintf("%s %s%s-%02d", node.Source, node.ISO, node.Emoji, renameCounters[node.Source][node.ISO])
-		ctx.Nodes[i].Params["_newname"] = newName // 仅用于输出，不覆盖 OriginName
 	}
 }
 
