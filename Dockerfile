@@ -16,7 +16,10 @@ RUN if [ ! -f go.mod ]; then go mod init conflux; fi \
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-s -w -X main.Version=$VERSION" -o conflux
 
 # ----------- 运行阶段 -----------
-FROM scratch
+FROM alpine:latest
+
+# 安装 CA 证书
+RUN apk add --no-cache ca-certificates
 
 WORKDIR /data/conflux
 

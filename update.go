@@ -160,7 +160,7 @@ func fetchProxies(airport, url string) []string {
 		}
 		return lines
 	}
-	Error("UPDATE", "机场 %s 所有重试均失败", airport)
+	Error("UPDATE", "机场 %s 重试失败", airport)
 	return nil
 }
 
@@ -323,7 +323,14 @@ func writeNodeConf(nodes []Node) {
 	// 检查内容非空再写入
 	content := strings.Join(lines, "\n")
 	if strings.TrimSpace(content) != "" {
-		_ = os.WriteFile("/data/conflux/node.conf", []byte(content), 0644)
+		nodeConfPath := "/data/conflux/node.conf"
+		if err := os.WriteFile(nodeConfPath, []byte(content), 0644); err != nil {
+			Error("UPDATE", "写入 node.conf 失败: %v", err)
+		} else {
+			Info("UPDATE", "成功写入 node.conf: %s (%d 行)", nodeConfPath, len(lines))
+		}
+	} else {
+		Warn("UPDATE", "node.conf 内容为空，跳过写入")
 	}
 }
 

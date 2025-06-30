@@ -153,7 +153,7 @@ func isIP(server string) bool {
 // 使用 Cloudflare 1.1.1.1 DoH 查询 A 记录
 func resolveA1_1_1_1(domain string) ([]string, error) {
 	client := &http.Client{Timeout: 3 * time.Second}
-	req, _ := http.NewRequest("GET", "https://cloudflare-dns.com/dns-query?name="+domain+"&type=A", nil)
+	req, _ := http.NewRequest("GET", "https://1.1.1.1/dns-query?name="+domain+"&type=A", nil)
 	req.Header.Set("accept", "application/dns-json")
 	resp, err := client.Do(req)
 	if err != nil {

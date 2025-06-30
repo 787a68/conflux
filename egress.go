@@ -186,8 +186,8 @@ func createProxyClient(proxyMap map[string]interface{}) *http.Client {
 func getProxyISO(client *http.Client) (string, error) {
 	// 轮询 1.1.1.1 和 1.0.0.1
 	urls := []string{
-		"https://www.cloudflare.com/cdn-cgi/trace",
-		"https://cloudflare.com/cdn-cgi/trace",
+		"https://1.1.1.1/cdn-cgi/trace",
+		"https://1.0.0.1/cdn-cgi/trace",
 	}
 
 	for _, url := range urls {
