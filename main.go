@@ -162,12 +162,14 @@ func main() {
 		time.Local = loc
 	}
 
-	// 1. 日志系统初始化（提前初始化，保证所有日志都规范输出）
-	logDir := "/data/conflux/log"
+	// 统一创建主目录和日志目录
+	baseDir := "/data/conflux"
+	logDir := filepath.Join(baseDir, "log")
 	if err := os.MkdirAll(logDir, 0755); err != nil {
 		fmt.Printf("[ERROR] 创建日志目录失败: %v\n", err)
 		os.Exit(1)
 	}
+
 	now := time.Now()
 	monday := getMondayZero(now)
 	// 使用当前时间命名初始日志文件
@@ -179,26 +181,15 @@ func main() {
 	defer CloseLog()
 	Info("SYS", "版本号: %s", Version)
 	Info("SYS", "工作目录: %s", getCurrentDir())
-	Info("SYS", "日志目录: %s", logDir)
 	cleanOldLogs(logDir, 7)
 	startLogRotator(logDir, &monday)
 
 	// 2. TOKEN 管理
-	tokenPath := "/data/conflux/token"
-	if err := os.MkdirAll(filepath.Dir(tokenPath), 0755); err != nil {
-		Error("SYS", "创建 token 目录失败: %v", err)
-	} else {
-		Info("SYS", "Token 目录创建成功: %s", filepath.Dir(tokenPath))
-	}
+	tokenPath := filepath.Join(baseDir, "token")
 	_ = getToken(tokenPath)
 
 	// 3. 节点配置文件检查与自动更新
-	nodeConf := "/data/conflux/node.conf"
-	if err := os.MkdirAll(filepath.Dir(nodeConf), 0755); err != nil {
-		Error("SYS", "创建 node.conf 目录失败: %v", err)
-	} else {
-		Info("SYS", "Node.conf 目录创建成功: %s", filepath.Dir(nodeConf))
-	}
+	nodeConf := filepath.Join(baseDir, "node.conf")
 	checkAndUpdateNodeConf(nodeConf)
 
 	// 4. 定时任务：每隔6小时检查 node.conf 是否超时未更新
