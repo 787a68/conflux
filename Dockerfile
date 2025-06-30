@@ -10,8 +10,6 @@ WORKDIR /app
 # 拷贝 go.mod/go.sum 或自动生成
 COPY . .
 RUN if [ ! -f go.mod ]; then go mod init conflux; fi \
-    && go mod tidy \
-    && go get -u ./... \
     && go mod tidy
 
 # 构建二进制文件，静态编译，极致精简
