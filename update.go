@@ -243,19 +243,9 @@ func parseNodeLine(line, airport string) (Node, bool) {
 
 // 节点重命名，生成最终节点名（不覆盖原始名，直接用于输出）
 func renameNodes(ctx *UpdateContext) {
-	// 先分组
-	groupMap := make(map[string][]int) // key: Source+ISO, value: 节点在 ctx.Nodes 的下标
-	for i, node := range ctx.Nodes {
-		groupKey := fmt.Sprintf("%s|%s", node.Source, node.ISO)
-		groupMap[groupKey] = append(groupMap[groupKey], i)
-	}
-	// 对每组顺序编号
-	for _, idxs := range groupMap {
-		for j, idx := range idxs {
-			node := &ctx.Nodes[idx]
-			newName := fmt.Sprintf("%s %s%s-%02d", node.Source, node.ISO, node.Emoji, j+1)
-			node.Params["_newname"] = newName
-		}
+	// 只清空 _newname 字段
+	for i := range ctx.Nodes {
+		ctx.Nodes[i].Params["_newname"] = ""
 	}
 }
 
@@ -295,35 +285,44 @@ func formatNode(n Node, newName string) string {
 
 // 写入 node.conf 文件
 func writeNodeConf(nodes []Node) {
-	// 按机场名和节点名排序
-	sort.Slice(nodes, func(i, j int) bool {
-		if nodes[i].Source != nodes[j].Source {
-			return nodes[i].Source < nodes[j].Source
-		}
-		return nodes[i].Params["_newname"] < nodes[j].Params["_newname"]
-	})
+	// 1. 按 Source+ISO 分组
+	groupMap := make(map[string][]*Node)
+	for i := range nodes {
+		node := &nodes[i]
+		groupKey := fmt.Sprintf("%s|%s", node.Source, node.ISO)
+		groupMap[groupKey] = append(groupMap[groupKey], node)
+	}
+
+	// 2. 分组顺序
+	var groupKeys []string
+	for k := range groupMap {
+		groupKeys = append(groupKeys, k)
+	}
+	sort.Strings(groupKeys)
 
 	lines := []string{}
-	for _, node := range nodes {
-		newName := node.Params["_newname"]
-		if newName == "" {
-			newName = node.OriginName
+	for _, groupKey := range groupKeys {
+		group := groupMap[groupKey]
+		// 组内顺序保持原始顺序，编号递增
+		for j, node := range group {
+			newName := fmt.Sprintf("%s %s%s-%02d", node.Source, node.ISO, node.Emoji, j+1)
+			line := formatNode(*node, newName)
+			lines = append(lines, line)
 		}
-		line := formatNode(node, newName)
-		// 使用正则替换 true/false 为 1/0
-		line = strings.ReplaceAll(line, "=true", "=1")
-		line = strings.ReplaceAll(line, "=false", "=0")
-		lines = append(lines, line)
 	}
-	// 检查内容非空再写入
+
+	// 3. 最后统一替换 true/false 为 1/0
 	content := strings.Join(lines, "\n")
+	content = strings.ReplaceAll(content, "=true", "=1")
+	content = strings.ReplaceAll(content, "=false", "=0")
+
+	// 4. 检查内容非空再写入，并支持 Gists 上传
 	if strings.TrimSpace(content) != "" {
 		nodeConfPath := "/data/conflux/node.conf"
 		if err := os.WriteFile(nodeConfPath, []byte(content), 0644); err != nil {
 			Error("UPDATE", "写入 node.conf 失败: %v", err)
 		} else {
 			Info("UPDATE", "成功写入 node.conf: %s (%d 行)", nodeConfPath, len(lines))
-			// 新增：写入成功后判断 GISTS 环境变量并上传
 			gistsEnv := os.Getenv("GISTS")
 			if gistsEnv != "" {
 				uploadToGists(gistsEnv, nodeConfPath)
