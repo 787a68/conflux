@@ -156,6 +156,12 @@ func startLogRotator(logDir string, monday *time.Time) {
 
 // 主入口：初始化各模块并启动服务
 func main() {
+	// 设置全局本地时间为东八区（北京时间）
+	loc, err := time.LoadLocation("Asia/Shanghai")
+	if err == nil {
+		time.Local = loc
+	}
+
 	// 1. 日志系统初始化（提前初始化，保证所有日志都规范输出）
 	logDir := "/data/conflux/log"
 	if err := os.MkdirAll(logDir, 0755); err != nil {

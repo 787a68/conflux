@@ -156,11 +156,12 @@ func fetchProxies(airport, url string) []string {
 		if len(lines) == 0 {
 			Warn("UPDATE", "机场 %s 返回空内容", airport)
 		} else {
-			Info("UPDATE", "机场 %s 获取 %d 行内容", airport, len(lines))
+			nodeCount := len(extractProxyLines(lines))
+			Info("UPDATE", "机场 %s 原始节点数: %d", airport, nodeCount)
 		}
 		return lines
 	}
-	Error("UPDATE", "机场 %s 重试失败", airport)
+	Error("UPDATE", "机场 %s 所有重试均失败", airport)
 	return nil
 }
 

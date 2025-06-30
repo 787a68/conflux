@@ -102,8 +102,18 @@ func convertNodeToProxyMap(node *Node) map[string]interface{} {
 		"port":   node.Port,
 	}
 
-	// 参数名转换和值转换
+	if node.Type == "vmess" {
+		alterId := 1 // 默认旧协议
+		if val, ok := node.Params["vmess-aead"]; ok && (val == "true" || val == "1") {
+			alterId = 0 // AEAD
+		}
+		proxyMap["alterId"] = alterId
+	}
+
 	for k, v := range node.Params {
+		if node.Type == "vmess" && k == "vmess-aead" {
+			continue // 不输出 vmess-aead
+		}
 		newKey := convertParamName(k)
 		newValue := convertParamValue(v)
 		proxyMap[newKey] = newValue
@@ -177,7 +187,7 @@ func createProxyClient(proxyMap map[string]interface{}) *http.Client {
 	}
 
 	return &http.Client{
-		Timeout:   5 * time.Second,
+		Timeout:   3 * time.Second,
 		Transport: transport,
 	}
 }
@@ -216,7 +226,7 @@ func getProxyISO(client *http.Client) (string, error) {
 		}
 	}
 
-	return "", fmt.Errorf("所有地址都无法获取 ISO 代码")
+	return "", fmt.Errorf("无法获取 ISO 代码")
 }
 
 // getEmojiByISO 根据 ISO 代码计算 emoji
