@@ -114,8 +114,14 @@ func getToken(tokenPath string) string {
 
 // 节点配置文件检查与自动更新
 func checkAndUpdateNodeConf(nodeConf string) {
-	if _, err := os.Stat(nodeConf); os.IsNotExist(err) {
+	info, err := os.Stat(nodeConf)
+	if os.IsNotExist(err) {
 		Warn("CONF", "未检测到 node.conf，自动执行 update")
+		updateNodes()
+		return
+	}
+	if err == nil && time.Since(info.ModTime()) > 24*time.Hour {
+		Warn("CONF", "node.conf 超过 24 小时未更新，自动执行 update")
 		updateNodes()
 	}
 }

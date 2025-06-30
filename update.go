@@ -5,7 +5,10 @@ package main
 
 import (
 	"bufio"
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"sort"
@@ -306,7 +309,7 @@ func writeNodeConf(nodes []Node) {
 		if nodes[i].Source != nodes[j].Source {
 			return nodes[i].Source < nodes[j].Source
 		}
-		return nodes[i].OriginName < nodes[j].OriginName
+		return nodes[i].Params["_newname"] < nodes[j].Params["_newname"]
 	})
 
 	lines := []string{}
@@ -329,9 +332,57 @@ func writeNodeConf(nodes []Node) {
 			Error("UPDATE", "写入 node.conf 失败: %v", err)
 		} else {
 			Info("UPDATE", "成功写入 node.conf: %s (%d 行)", nodeConfPath, len(lines))
+			// 新增：写入成功后判断 GISTS 环境变量并上传
+			gistsEnv := os.Getenv("GISTS")
+			if gistsEnv != "" {
+				uploadToGists(gistsEnv, nodeConfPath)
+			}
 		}
 	} else {
 		Warn("UPDATE", "node.conf 内容为空，跳过写入")
+	}
+}
+
+// 新增：上传 node.conf 到 Gists
+// GISTS 环境变量格式示例：ghp_xxx@1234567890abcdef1234567890abcdef
+// 其中 ghp_xxx 是 GitHub Token，1234567890abcdef1234567890abcdef 是 Gist ID
+func uploadToGists(gistsEnv, filePath string) {
+	content, err := os.ReadFile(filePath)
+	if err != nil {
+		Error("GISTS", "读取 node.conf 失败: %v", err)
+		return
+	}
+	// 构造 Gists API 请求体
+	body := map[string]interface{}{
+		"files": map[string]map[string]string{
+			"node.conf": {
+				"content": string(content),
+			},
+		},
+	}
+	data, _ := json.Marshal(body)
+	// 解析 token（假设 GISTS=token@gist_id）
+	parts := strings.SplitN(gistsEnv, "@", 2)
+	if len(parts) != 2 {
+		Error("GISTS", "GISTS 环境变量格式错误，应为 token@gist_id")
+		return
+	}
+	token, gistID := parts[0], parts[1]
+	url := "https://api.github.com/gists/" + gistID
+	req, _ := http.NewRequest("PATCH", url, bytes.NewReader(data))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		Error("GISTS", "上传 Gists 失败: %v", err)
+		return
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+		Info("GISTS", "成功上传 node.conf 到 Gists")
+	} else {
+		body, _ := io.ReadAll(resp.Body)
+		Error("GISTS", "上传 Gists 失败，状态码: %d, 响应: %s", resp.StatusCode, string(body))
 	}
 }
 
