@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"os"
 	"strings"
@@ -67,8 +68,16 @@ func handleConflux(w http.ResponseWriter, r *http.Request) {
 // 记录请求日志，包含完整URL和Header
 func logRequest(r *http.Request) {
 	Info("HTTP", "收到请求: %s %s", r.Method, r.URL.String())
+
+	// 收集所有header信息
+	var headers []string
 	for k, v := range r.Header {
-		Info("HTTP", "Header: %s: %s", k, strings.Join(v, ", "))
+		headers = append(headers, fmt.Sprintf("%s: %s", k, strings.Join(v, ", ")))
+	}
+
+	// 将所有header合并为一条日志
+	if len(headers) > 0 {
+		Info("HTTP", "Headers: %s", strings.Join(headers, " | "))
 	}
 }
 
@@ -108,38 +117,41 @@ func loadNodeConf(path string) ([]string, error) {
 
 // 处理节点参数覆盖和新增
 func processNodes(lines []string, params map[string][]string) []string {
+	// 定义允许的参数映射（URL参数名 -> 节点属性名）
 	paramMap := map[string]string{
 		"udp":  "udp-relay",
 		"quic": "block-quic",
 		"tfo":  "tfo",
 	}
+
 	var result []string
 	for _, line := range lines {
 		if line = strings.TrimSpace(line); line == "" {
 			continue
 		}
-		// 覆盖指定参数
+
+		// 处理参数覆盖（只处理在paramMap中定义的参数）
 		for k, v := range params {
 			attr, ok := paramMap[k]
 			if !ok {
-				continue
+				continue // 跳过未定义的参数
 			}
 			for _, val := range v {
 				line = replaceAttr(line, attr, val)
 			}
 		}
-		// 新增未指定参数（节点中没有该属性时才追加到行尾）
+
+		// 处理参数新增（只处理在paramMap中定义的参数）
 		for k, v := range params {
-			if _, ok := paramMap[k]; ok {
-				continue
+			attr, ok := paramMap[k]
+			if !ok {
+				continue // 跳过未定义的参数
 			}
 			for _, val := range v {
-				attrEq := k + "="
+				attrEq := attr + "="
 				if !strings.Contains(line, attrEq) {
-					if !strings.HasSuffix(line, ",") && !strings.HasSuffix(line, " ") {
-						line += ","
-					}
-					line += k + "=" + val
+					// 直接在行尾添加逗号和参数
+					line += "," + attr + "=" + val
 				}
 			}
 		}

@@ -200,26 +200,39 @@ func getProxyISO(client *http.Client) (string, error) {
 		"https://1.0.0.1/cdn-cgi/trace",
 	}
 
-	var lastError error
+	var errors []string
+	errorSet := make(map[string]bool)
 	for _, url := range urls {
 		// 访问 Cloudflare trace 接口
 		resp, err := client.Get(url)
 		if err != nil {
-			lastError = fmt.Errorf("请求 %s 失败: %v", url, err)
+			errorMsg := fmt.Sprintf("%v", err)
+			if !errorSet[errorMsg] {
+				errors = append(errors, errorMsg)
+				errorSet[errorMsg] = true
+			}
 			continue // 尝试下一个地址
 		}
 		defer resp.Body.Close()
 
 		// 检查 HTTP 状态码
 		if resp.StatusCode != 200 {
-			lastError = fmt.Errorf("请求 %s 返回状态码: %d", url, resp.StatusCode)
+			errorMsg := fmt.Sprintf("HTTP %d", resp.StatusCode)
+			if !errorSet[errorMsg] {
+				errors = append(errors, errorMsg)
+				errorSet[errorMsg] = true
+			}
 			continue
 		}
 
 		// 读取响应内容
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
-			lastError = fmt.Errorf("读取 %s 响应失败: %v", url, err)
+			errorMsg := fmt.Sprintf("%v", err)
+			if !errorSet[errorMsg] {
+				errors = append(errors, errorMsg)
+				errorSet[errorMsg] = true
+			}
 			continue // 尝试下一个地址
 		}
 
@@ -237,12 +250,16 @@ func getProxyISO(client *http.Client) (string, error) {
 		}
 
 		// 如果响应中没有找到 loc 字段
-		lastError = fmt.Errorf("响应中未找到 ISO 代码: %s", content)
+		errorMsg := "响应中未找到 ISO 代码"
+		if !errorSet[errorMsg] {
+			errors = append(errors, errorMsg)
+			errorSet[errorMsg] = true
+		}
 	}
 
-	// 如果所有 URL 都失败了，返回最后一个错误
-	if lastError != nil {
-		return "", lastError
+	// 只有当所有 URL 都失败时才返回错误
+	if len(errors) > 0 {
+		return "", fmt.Errorf("%s", strings.Join(errors, ", "))
 	}
 
 	return "", fmt.Errorf("无法获取 ISO 代码")
