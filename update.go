@@ -130,21 +130,21 @@ func fetchProxies(airport, url string) []string {
 	for i := 0; i < 2; i++ {
 		req, err := http.NewRequest("GET", url, nil)
 		if err != nil {
-			Error("UPDATE", "机场 %s 创建请求失败: %v", airport, err)
+			Error("UPDATE", "[%s] 创建请求失败: %v", airport, err)
 			continue
 		}
 		req.Header.Set("User-Agent", "Surge")
 		resp, err := client.Do(req)
 		if err != nil {
 			if i == 1 { // 最后一次重试失败
-				Error("UPDATE", "机场 %s 请求失败: %v", airport, err)
+				Error("UPDATE", "[%s] 请求失败: %v", airport, err)
 			}
 			time.Sleep(500 * time.Millisecond)
 			continue
 		}
 		if resp.StatusCode != 200 {
 			if i == 1 { // 最后一次重试失败
-				Error("UPDATE", "机场 %s HTTP状态码错误: %d", airport, resp.StatusCode)
+				Error("UPDATE", "[%s] HTTP状态码错误: %d", airport, resp.StatusCode)
 			}
 			resp.Body.Close()
 			time.Sleep(500 * time.Millisecond)
@@ -157,14 +157,14 @@ func fetchProxies(airport, url string) []string {
 			lines = append(lines, scanner.Text())
 		}
 		if len(lines) == 0 {
-			Warn("UPDATE", "机场 %s 返回空内容", airport)
+			Warn("UPDATE", "[%s] 返回空内容", airport)
 		} else {
 			nodeCount := len(extractProxyLines(lines))
-			Info("UPDATE", "机场 %s 原始节点数: %d", airport, nodeCount)
+			Info("UPDATE", "[%s] 原始节点数: %d", airport, nodeCount)
 		}
 		return lines
 	}
-	Error("UPDATE", "机场 %s 所有重试均失败", airport)
+	Error("UPDATE", "[%s] 重试失败", airport)
 	return nil
 }
 

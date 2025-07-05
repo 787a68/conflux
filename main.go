@@ -94,13 +94,10 @@ func genToken(n int) string {
 func getToken(tokenPath string) string {
 	token := os.Getenv("TOKEN")
 	if token != "" {
-		Info("TOKEN", "TOKEN 来源于环境变量")
-		// 不写入 token 文件
 		return token
 	}
 	if data, err := os.ReadFile(tokenPath); err == nil {
 		token = strings.TrimSpace(string(data))
-		Info("TOKEN", "TOKEN 来源于本地文件")
 		return token
 	}
 	token = genToken(32)
@@ -195,7 +192,7 @@ func main() {
 	manageNodeConf(nodeConf)
 
 	// 4. 启动 HTTP 服务
-	Info("HTTP", "启动 HTTP 服务...")
+	Info("HTTP", "启动 HTTP 服务... 监听端口 80 ")
 	startServer()
 }
 

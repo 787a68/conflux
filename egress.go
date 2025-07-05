@@ -72,7 +72,7 @@ func detectNodeGeo(node *Node, ctx *UpdateContext) {
 	// 创建代理客户端
 	client := createProxyClient(proxyMap)
 	if client == nil {
-		Warn("EGRESS", "创建代理客户端失败: [%s] %s", node.Source, node.OriginName)
+		Warn("EGRESS", "[%s] %s: 创建代理客户端失败", node.Source, node.OriginName)
 		updateFailedCount(node.Source, ctx)
 		return
 	}
@@ -80,7 +80,7 @@ func detectNodeGeo(node *Node, ctx *UpdateContext) {
 	// 通过代理访问 Cloudflare trace 接口获取 ISO
 	iso, err := getProxyISO(client)
 	if err != nil {
-		Warn("EGRESS", "获取 ISO 失败: [%s] %s - %v", node.Source, node.OriginName, err)
+		Warn("EGRESS", "[%s] %s: 获取 ISO 失败 - %v", node.Source, node.OriginName, err)
 		updateFailedCount(node.Source, ctx)
 		return
 	}
@@ -206,10 +206,11 @@ func getProxyISO(client *http.Client) (string, error) {
 		// 访问 Cloudflare trace 接口
 		resp, err := client.Get(url)
 		if err != nil {
-			errorMsg := fmt.Sprintf("%v", err)
-			if !errorSet[errorMsg] {
-				errors = append(errors, errorMsg)
-				errorSet[errorMsg] = true
+			// 提取错误信息，保留括号中的详细信息，只去掉URL部分
+			errStr := err.Error()
+			if !errorSet[errStr] {
+				errors = append(errors, errStr)
+				errorSet[errStr] = true
 			}
 			continue // 尝试下一个地址
 		}
@@ -228,10 +229,11 @@ func getProxyISO(client *http.Client) (string, error) {
 		// 读取响应内容
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
-			errorMsg := fmt.Sprintf("%v", err)
-			if !errorSet[errorMsg] {
-				errors = append(errors, errorMsg)
-				errorSet[errorMsg] = true
+			// 提取错误信息，保留括号中的详细信息，只去掉URL部分
+			errStr := err.Error()
+			if !errorSet[errStr] {
+				errors = append(errors, errStr)
+				errorSet[errStr] = true
 			}
 			continue // 尝试下一个地址
 		}
