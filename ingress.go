@@ -28,7 +28,6 @@ func ingress(ctx *UpdateContext) {
 			stat = &Stat{}
 			ctx.AirportStats[node.Source] = stat
 		}
-		stat.Total++
 
 		// 分离 IP 节点和域名节点
 		if isIP(node.Server) {
@@ -88,6 +87,14 @@ func ingress(ctx *UpdateContext) {
 	}
 
 	ctx.Nodes = newNodes
+
+	// 重新计算每个机场的总数（基于最终节点数量）
+	for _, node := range newNodes {
+		stat := ctx.AirportStats[node.Source]
+		if stat != nil {
+			stat.Total++
+		}
+	}
 
 	// 输出每个机场的统计日志，格式: [机场名] 总数=%d 去重=%d 失败=%d
 	for airport, stat := range ctx.AirportStats {
