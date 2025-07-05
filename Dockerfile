@@ -26,5 +26,8 @@ WORKDIR /data/conflux
 # 拷贝二进制文件
 COPY --from=builder /app/conflux /conflux
 
+# 暴露端口
+EXPOSE 80
+
 # 启动应用
 ENTRYPOINT ["/conflux"] 
