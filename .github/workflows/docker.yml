@@ -31,6 +31,6 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/conflux:latest,${{ secrets.DOCKERHUB_USERNAME }}/conflux:${{ env.BUILD_DATE }}
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/conflux:${{ env.BUILD_DATE }},${{ secrets.DOCKERHUB_USERNAME }}/conflux:latest
           build-args: |
             BUILD_DATE=${{ env.BUILD_DATE }} 

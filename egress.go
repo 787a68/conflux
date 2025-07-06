@@ -206,8 +206,14 @@ func getProxyISO(client *http.Client) (string, error) {
 		// 访问 Cloudflare trace 接口
 		resp, err := client.Get(url)
 		if err != nil {
-			// 提取错误信息，保留括号中的详细信息，只去掉URL部分
+			// 提取错误信息，去掉URL部分
 			errStr := err.Error()
+			if strings.Contains(errStr, "Get \"") {
+				// 去掉 "Get "https://xxx": " 部分
+				if idx := strings.Index(errStr, ": "); idx != -1 {
+					errStr = errStr[idx+2:]
+				}
+			}
 			if !errorSet[errStr] {
 				errors = append(errors, errStr)
 				errorSet[errStr] = true
@@ -229,8 +235,14 @@ func getProxyISO(client *http.Client) (string, error) {
 		// 读取响应内容
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
-			// 提取错误信息，保留括号中的详细信息，只去掉URL部分
+			// 提取错误信息，去掉URL部分
 			errStr := err.Error()
+			if strings.Contains(errStr, "Get \"") {
+				// 去掉 "Get "https://xxx": " 部分
+				if idx := strings.Index(errStr, ": "); idx != -1 {
+					errStr = errStr[idx+2:]
+				}
+			}
 			if !errorSet[errStr] {
 				errors = append(errors, errStr)
 				errorSet[errStr] = true

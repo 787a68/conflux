@@ -83,14 +83,9 @@ func updateNodes() {
 	// 6. egress 出口检测（geo 检测、失败统计）
 	egress(ctx)
 
-	// 7. 节点重命名，生成最终节点名
-	// renameNodes(ctx) // 已删除
-
-	// 8. 写入 node.conf
+	// 7. 写入 node.conf
 	writeNodeConf(ctx.Nodes)
 
-	// 9. 输出机场统计日志
-	logAirportStats(ctx.AirportStats)
 }
 
 // 解析 SUB 环境变量，返回 map[机场名]订阅链接
@@ -242,7 +237,7 @@ func parseNodeLine(line, airport string) (Node, bool) {
 }
 
 // 格式化节点为订阅输出格式
-// newName: 新节点名（如 AR HK🇭🇰-01）
+// newName: 新节点名（如 AR [HK🇭🇰]-01）
 func formatNode(n Node, newName string) string {
 	// 使用原始参数字符串保持顺序
 	params := n.ParamString
@@ -294,7 +289,7 @@ func writeNodeConf(nodes []Node) {
 		group := groupMap[groupKey]
 		// 组内顺序保持原始顺序，编号递增
 		for j, node := range group {
-			newName := fmt.Sprintf("%s %s%s-%02d", node.Source, node.ISO, node.Emoji, j+1)
+			newName := fmt.Sprintf("%s [%s%s]-%02d", node.Source, node.ISO, node.Emoji, j+1)
 			line := formatNode(*node, newName)
 			lines = append(lines, line)
 		}
@@ -363,13 +358,4 @@ func uploadToGists(gistsEnv, filePath string) {
 		body, _ := io.ReadAll(resp.Body)
 		Error("GISTS", "上传 Gists 失败，状态码: %d, 响应: %s", resp.StatusCode, string(body))
 	}
-}
-
-// 输出机场统计日志
-func logAirportStats(stats map[string]*Stat) {
-	totalNodes := 0
-	for _, stat := range stats {
-		totalNodes += stat.Total
-	}
-	Info("UPDATE", "总可用节点数: %d", totalNodes)
 }

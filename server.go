@@ -19,7 +19,7 @@ func startServer() {
 // 处理 /conflux 路由的主入口
 func handleConflux(w http.ResponseWriter, r *http.Request) {
 	logRequest(r)
-	setCORSHeaders(w, r)
+	setCORSHeaders(w)
 	if r.Method == http.MethodOptions {
 		w.WriteHeader(http.StatusNoContent)
 		return
@@ -82,7 +82,7 @@ func logRequest(r *http.Request) {
 }
 
 // 设置 CORS 响应头
-func setCORSHeaders(w http.ResponseWriter, r *http.Request) {
+func setCORSHeaders(w http.ResponseWriter) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
 	w.Header().Set("Access-Control-Allow-Headers", "*")
