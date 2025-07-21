@@ -131,6 +131,8 @@ func convertParamName(key string) string {
 		return "udp"
 	case "username":
 		return "uuid"
+	case "download-bandwidth":
+		return "down"
 	default:
 		return key
 	}
