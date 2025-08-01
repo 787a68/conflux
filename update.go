@@ -121,7 +121,7 @@ func fetchAllProxies(airports map[string]string) map[string][]string {
 
 // 拉取单个机场订阅，返回所有行（失败重试一次，UA 伪装为 Surge）
 func fetchProxies(airport, url string) []string {
-	client := &http.Client{Timeout: 3 * time.Second}
+	client := &http.Client{Timeout: 10 * time.Second}
 	for i := 0; i < 2; i++ {
 		req, err := http.NewRequest("GET", url, nil)
 		if err != nil {

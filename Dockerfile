@@ -3,6 +3,9 @@ FROM golang:alpine AS builder
 
 # 设置构建参数，获取构建时间（精确到分钟）
 ARG BUILD_DATE
+ARG TARGETPLATFORM
+ARG TARGETARCH
+ARG TARGETOS
 ENV VERSION=${BUILD_DATE}
 
 WORKDIR /app
@@ -12,8 +15,8 @@ COPY . .
 RUN if [ ! -f go.mod ]; then go mod init conflux; fi \
     && go mod tidy
 
-# 构建二进制文件，静态编译，极致精简
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-s -w -X main.Version=$VERSION" -o conflux
+# 构建二进制文件，支持多架构
+RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -ldflags "-s -w -X main.Version=$VERSION" -o conflux
 
 # ----------- 运行阶段 -----------
 FROM alpine:latest
