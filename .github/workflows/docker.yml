@@ -34,7 +34,7 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          platforms: linux/amd64,linux/arm64,linux/arm/v7
+          platforms: linux/amd64,linux/arm64
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/conflux:${{ env.BUILD_DATE }},${{ secrets.DOCKERHUB_USERNAME }}/conflux:latest
           build-args: |
             BUILD_DATE=${{ env.BUILD_DATE }} 
