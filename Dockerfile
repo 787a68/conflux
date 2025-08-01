@@ -32,7 +32,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 
 FROM alpine:latest
 
-RUN apk add --no-cache ca-certificates
+RUN apk add --no-cache ca-certificates binutils
 WORKDIR /data/conflux
 
 # 拷贝编译好的文件并瘦身
