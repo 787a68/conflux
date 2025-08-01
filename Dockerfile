@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1.5
-FROM golang:alpine AS builder
+FROM --platform=$BUILDPLATFORM golang:alpine AS builder
 
 # 构建参数
 ARG BUILD_DATE
@@ -30,7 +30,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 
 # ----------- 运行阶段 -----------
 
-FROM alpine:latest
+FROM --platform=$TARGETPLATFORM alpine:latest
 
 RUN apk add --no-cache ca-certificates binutils
 WORKDIR /data/conflux
