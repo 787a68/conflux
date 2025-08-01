@@ -8,6 +8,8 @@ on:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -25,16 +27,21 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Extract Beijing build date
-        id: date
         run: echo "BUILD_DATE=$(TZ=Asia/Shanghai date +'%Y%m%d%H%M')" >> $GITHUB_ENV
 
-      - name: Build and push
+      - name: Build and push multi-arch image
         uses: docker/build-push-action@v5
         with:
           context: .
           file: ./Dockerfile
           push: true
           platforms: linux/amd64,linux/arm64
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/conflux:${{ env.BUILD_DATE }},${{ secrets.DOCKERHUB_USERNAME }}/conflux:latest
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/conflux:${{ env.BUILD_DATE }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/conflux:latest
           build-args: |
-            BUILD_DATE=${{ env.BUILD_DATE }} 
+            BUILD_DATE=${{ env.BUILD_DATE }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: false
+          sbom: false
