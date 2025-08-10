@@ -125,7 +125,7 @@ func concurrentDNSQuery(nodes []Node, concurrency int) []dnsResult {
 		go func() {
 			defer wg.Done()
 			for node := range taskChan {
-				ips, _ := resolveA1_1_1_1(node.Server)
+				ips, _ := resolveADNS(node.Server)
 				resultChan <- dnsResult{node: node, ips: ips}
 			}
 		}()
@@ -157,10 +157,11 @@ func isIP(server string) bool {
 	return net.ParseIP(server) != nil
 }
 
-// 使用 Cloudflare 1.1.1.1 DoH 查询 A 记录
-func resolveA1_1_1_1(domain string) ([]string, error) {
+// 使用国内 DNS DoH 查询 A 记录
+func resolveADNS(domain string) ([]string, error) {
 	client := &http.Client{Timeout: 3 * time.Second}
-	req, _ := http.NewRequest("GET", "https://1.1.1.1/dns-query?name="+domain+"&type=A", nil)
+	// 使用阿里云 DNS DoH
+	req, _ := http.NewRequest("GET", "https://223.5.5.5/dns-query?name="+domain+"&type=A", nil)
 	req.Header.Set("accept", "application/dns-json")
 	resp, err := client.Do(req)
 	if err != nil {
