@@ -1,13 +1,10 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"net"
-	"net/http"
 	"strings"
 	"sync"
-	"time"
 )
 
 // ingress.go
@@ -58,7 +55,7 @@ func ingress(ctx *UpdateContext) {
 		stat := ctx.AirportStats[node.Source]
 
 		if len(ips) == 0 {
-			Warn("INGRESS", "DoH 查询失败: [%s] %s", node.Source, node.OriginName)
+			Warn("INGRESS", "DNS 查询失败: [%s] %s", node.Source, node.OriginName)
 			stat.Failed++
 			continue
 		}
@@ -157,31 +154,11 @@ func isIP(server string) bool {
 	return net.ParseIP(server) != nil
 }
 
-// 使用国内 DNS DoH 查询 A 记录
+// 使用普通 DNS 查询 A 记录
 func resolveADNS(domain string) ([]string, error) {
-	client := &http.Client{Timeout: 3 * time.Second}
-	// 使用阿里云 DNS DoH
-	req, _ := http.NewRequest("GET", "https://223.5.5.5/dns-query?name="+domain+"&type=A", nil)
-	req.Header.Set("accept", "application/dns-json")
-	resp, err := client.Do(req)
+	ips, err := net.LookupHost(domain)
 	if err != nil {
 		return nil, err
-	}
-	defer resp.Body.Close()
-	var result struct {
-		Answer []struct {
-			Data string `json:"data"`
-			Type int    `json:"type"`
-		} `json:"Answer"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, err
-	}
-	var ips []string
-	for _, ans := range result.Answer {
-		if ans.Type == 1 { // A 记录
-			ips = append(ips, ans.Data)
-		}
 	}
 	return ips, nil
 }
