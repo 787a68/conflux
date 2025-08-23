@@ -22,11 +22,13 @@
 | SUB      |   必需   | 机场订阅列表，格式 `机场名=订阅链接\|\|机场名2=订阅链接2`，支持多个机场聚合  | `SUB="机场A=https://xxx/subscribeA\|\|机场B=https://xxx/subscribeB"`                       |
 | TOKEN    |   可选   | API 访问认证 token，未设置时自动生成并保存在 `/data/conflux/token`         | `TOKEN="your_token"`                                                                    |
 | GISTS    |   可选   | 自动上传 `node.conf` 到 GitHub Gists，格式 `token@gist_id`                 | `GISTS="ghp_xxx@1234567890abcdef"`                                      |
+| TZ       |   可选   | 系统时区环境变量，Go 语言会自动使用此变量设置时区                         | `TZ="UTC"` 或 `TZ="Asia/Shanghai"` 或 `TZ="America/New_York"`                            |
 
 > **说明：**  
 > - `SUB` 是最核心的环境变量，决定 conflux 拉取哪些机场的节点。  
 > - `TOKEN` 用于 API 认证，建议设置，防止未授权访问。  
 > - `GISTS` 仅在需要将节点配置同步到 GitHub Gists 时设置。  
+> - `TZ` 为系统标准时区环境变量，Go 语言会自动使用此变量，无需在代码中手动设置。
 
 ---
 
@@ -55,6 +57,7 @@
 docker run -d --name conflux -p 80:80 \
   -e SUB="机场A=https://xxx/subscribeA||机场B=https://xxx/subscribeB" \
   -e TOKEN="your_token" \
+  -e TZ="Asia/Shanghai" \
   787a68/conflux:latest
 ``` 
 

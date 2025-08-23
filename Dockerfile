@@ -19,7 +19,7 @@ RUN GOARCH=$(echo $TARGETPLATFORM | cut -d '/' -f2) \
 # ----------- 运行阶段 -----------
 FROM alpine:latest
 
-RUN apk add --no-cache ca-certificates
+RUN apk add --no-cache ca-certificates tzdata
 
 WORKDIR /data/conflux
 

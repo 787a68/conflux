@@ -155,11 +155,7 @@ func startLogRotator(logDir string, monday *time.Time) {
 
 // 主入口：初始化各模块并启动服务
 func main() {
-	// 设置全局本地时间为东八区（北京时间）
-	loc, err := time.LoadLocation("Asia/Shanghai")
-	if err == nil {
-		time.Local = loc
-	}
+	// 系统会自动使用 TZ 环境变量，无需手动设置
 
 	// 统一创建主目录和日志目录
 	baseDir := "/data/conflux"
